@@ -8,7 +8,8 @@ import {
   ReceiptText,
   Settings,
   Shield,
-  Sparkles
+  Sparkles,
+  X
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
@@ -38,14 +39,14 @@ export const AdminSidebar = ({ activeTab, onSelectTab, onCloseMobile }) => {
   return (
     <aside className="flex h-full w-64 flex-col justify-between border-r border-slate-200/80 bg-slate-900 text-slate-300 no-print">
       
-      {/* Brand Header */}
-      <div className="p-5 border-b border-slate-800">
-        <div className="flex items-center space-x-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 font-black text-white shadow-md shadow-blue-500/20">
+      {/* Brand Header with Mobile Close (X) Button */}
+      <div className="p-4 sm:p-5 border-b border-slate-800 flex items-center justify-between">
+        <div className="flex items-center space-x-3 min-w-0">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 font-black text-white shadow-md shadow-blue-500/20">
             <Shield className="h-5 w-5" />
           </div>
-          <div>
-            <h1 className="text-sm font-extrabold text-white tracking-tight line-clamp-1">
+          <div className="min-w-0">
+            <h1 className="text-sm font-extrabold text-white tracking-tight truncate">
               {settings.businessName || 'AgroFeeds Hub'}
             </h1>
             <p className="text-[10px] font-bold text-blue-400 uppercase tracking-wider">
@@ -53,6 +54,17 @@ export const AdminSidebar = ({ activeTab, onSelectTab, onCloseMobile }) => {
             </p>
           </div>
         </div>
+
+        {/* Mobile X Button */}
+        {onCloseMobile && (
+          <button
+            onClick={onCloseMobile}
+            className="lg:hidden p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors ml-2 shrink-0"
+            title="Close sidebar"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        )}
       </div>
 
       {/* Navigation List */}
