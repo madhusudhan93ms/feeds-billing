@@ -1,191 +1,162 @@
 import React, { useState, useMemo } from 'react';
 import {
   TrendingUp,
+  ReceiptText,
   Search,
-  FileText,
-  Calendar,
-  CreditCard,
-  Banknote,
-  QrCode
+  Eye,
+  ShoppingBag,
+  Sparkles
 } from 'lucide-react';
-import { storageService } from '../../services/storageService';
-import { useAuth } from '../../context/AuthContext';
 import { useApp } from '../../context/AppContext';
-import { DataTable } from '../../components/common/DataTable';
+import { useAuth } from '../../context/AuthContext';
 import { InvoiceModal } from '../../components/billing/InvoiceModal';
 
 export const ShopSalesPage = () => {
+  const { sales, settings, metrics } = useApp();
   const { currentUser } = useAuth();
-  const { refreshKey } = useApp();
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedPaymentFilter, setSelectedPaymentFilter] = useState('All');
-  const [viewingInvoice, setViewingInvoice] = useState(null);
+  const [selectedInvoice, setSelectedInvoice] = useState(null);
 
-  const branchId = currentUser?.branchId;
+  const currency = settings.currency || '₹';
+  const todayStr = new Date().toISOString().split('T')[0];
 
-  const sales = useMemo(() => {
-    if (!branchId) return [];
-    return storageService.getSales({ branchId });
-  }, [branchId, refreshKey]);
+  // Today's sales
+  const todaySales = useMemo(() => {
+    return sales.filter((s) => s.date === todayStr);
+  }, [sales, todayStr]);
 
   const filteredSales = useMemo(() => {
-    return sales.filter(s => {
-      const matchPayment = selectedPaymentFilter === 'All' || s.paymentMethod === selectedPaymentFilter;
-      const matchSearch =
-        searchQuery === '' ||
-        s.invoiceNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        s.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        s.items.some(i => i.name.toLowerCase().includes(searchQuery.toLowerCase()));
-      return matchPayment && matchSearch;
-    });
-  }, [sales, selectedPaymentFilter, searchQuery]);
+    return todaySales.filter((sale) => {
+      const matchesSearch =
+        (sale.invoiceNumber && sale.invoiceNumber.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (sale.customerName && sale.customerName.toLowerCase().includes(searchQuery.toLowerCase()));
 
-  const totalRevenue = useMemo(() => {
-    return filteredSales.reduce((sum, s) => sum + s.grandTotal, 0);
-  }, [filteredSales]);
+      return matchesSearch;
+    });
+  }, [todaySales, searchQuery]);
+
+  const totalTodayAmount = todaySales.reduce((sum, s) => sum + (Number(s.grandTotal) || 0), 0);
 
   return (
     <div className="space-y-6">
       
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      {/* HEADER */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 flex items-center gap-2.5">
-            <TrendingUp className="h-6 w-6 text-emerald-600" />
-            <span>Branch Sales History</span>
+          <h1 className="text-xl sm:text-2xl font-black text-slate-900">
+            Today's Bills & Receipts
           </h1>
-          <p className="text-xs sm:text-sm text-slate-500">
-            All retail sales and customer invoices created at {currentUser?.branchName}.
+          <p className="text-xs sm:text-sm text-slate-500 mt-1">
+            Review and reprint customer receipts generated during today's shift.
           </p>
         </div>
 
-        <div className="rounded-2xl bg-white p-3 border border-slate-200 shadow-xs flex items-center space-x-3 text-xs">
-          <div>
-            <span className="text-slate-400 block text-[10px] uppercase font-bold">Total Sales</span>
-            <strong className="text-base font-black text-emerald-800">₹{totalRevenue.toLocaleString()}</strong>
-          </div>
-          <div className="border-l border-slate-200 pl-3">
-            <span className="text-slate-400 block text-[10px] uppercase font-bold">Invoices</span>
-            <strong className="text-base font-black text-slate-800">{filteredSales.length}</strong>
-          </div>
+        <div className="bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-2 text-right">
+          <p className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-700">Today's Shift Total</p>
+          <p className="text-base font-black text-emerald-900">{currency}{totalTodayAmount.toLocaleString()}</p>
         </div>
       </div>
 
-      {/* Filter Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-2xl bg-white p-4 border border-slate-200 shadow-xs">
-        <div className="flex items-center space-x-2">
-          <span className="text-xs font-bold text-slate-500">Payment:</span>
-          <select
-            value={selectedPaymentFilter}
-            onChange={(e) => setSelectedPaymentFilter(e.target.value)}
-            className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-800"
-          >
-            <option value="All">All Methods</option>
-            <option value="Cash">Cash</option>
-            <option value="UPI">UPI / GPay</option>
-            <option value="Card">Card</option>
-            <option value="Credit">Credit</option>
-          </select>
-        </div>
-
-        <div className="relative w-full sm:w-72">
-          <Search className="absolute left-3.5 top-2.5 h-4 w-4 text-slate-400" />
+      {/* SEARCH */}
+      <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search invoice #, customer..."
-            className="w-full rounded-xl border border-slate-200 bg-slate-50/70 py-2 pl-9 pr-3 text-xs focus:outline-none focus:border-emerald-500"
+            placeholder="Search by invoice number or customer name..."
+            className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500"
           />
         </div>
       </div>
 
-      {/* Sales DataTable */}
-      <DataTable
-        columns={[
-          {
-            key: 'invoiceNumber',
-            header: 'Invoice #',
-            sortable: true,
-            render: (val, row) => (
-              <div>
-                <span className="font-mono text-xs font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                  {val}
-                </span>
-                <div className="text-[11px] text-slate-400 mt-1">{row.date} at {row.time}</div>
-              </div>
-            )
-          },
-          {
-            key: 'customerName',
-            header: 'Customer',
-            sortable: true,
-            render: (val, row) => (
-              <div>
-                <div className="font-semibold text-slate-900">{val}</div>
-                {row.customerPhone && <div className="text-xs text-slate-400">{row.customerPhone}</div>}
-              </div>
-            )
-          },
-          {
-            key: 'items',
-            header: 'Products Sold',
-            render: (items) => (
-              <div className="text-xs text-slate-600 max-w-xs space-y-0.5">
-                {items.slice(0, 2).map((it, idx) => (
-                  <div key={idx} className="line-clamp-1">
-                    • {it.quantity}x {it.name}
-                  </div>
-                ))}
-                {items.length > 2 && (
-                  <span className="text-[10px] font-bold text-slate-400">+{items.length - 2} more</span>
-                )}
-              </div>
-            )
-          },
-          {
-            key: 'grandTotal',
-            header: 'Total Bill',
-            sortable: true,
-            render: (val) => <strong className="text-sm font-black text-emerald-800">₹{val.toLocaleString()}</strong>
-          },
-          {
-            key: 'paymentMethod',
-            header: 'Payment Method',
-            render: (val) => (
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-700">
-                {val}
-              </span>
-            )
-          },
-          {
-            key: 'actions',
-            header: 'Action',
-            className: 'text-right',
-            render: (_, row) => (
-              <button
-                onClick={() => setViewingInvoice(row)}
-                className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-bold text-emerald-700 hover:bg-emerald-50 transition-colors"
-              >
-                <FileText className="h-3.5 w-3.5" />
-                <span>View & Print Bill</span>
-              </button>
-            )
-          }
-        ]}
-        data={filteredSales}
-        pageSize={10}
-        emptyMessage="No sales recorded at this branch yet"
-      />
+      {/* INVOICES LIST */}
+      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-2xs overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs">
+            <thead>
+              <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 font-extrabold uppercase text-[10px] tracking-wider">
+                <th className="py-3 px-4">Invoice #</th>
+                <th className="py-3 px-3">Time</th>
+                <th className="py-3 px-3">Customer Details</th>
+                <th className="py-3 px-3">Items</th>
+                <th className="py-3 px-3 text-center">Payment Mode</th>
+                <th className="py-3 px-3 text-right">Bill Total</th>
+                <th className="py-3 px-4 text-center">Receipt</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {filteredSales.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="py-12 text-center text-slate-400">
+                    <ShoppingBag className="h-8 w-8 mx-auto mb-2 text-slate-300" />
+                    <p className="font-semibold text-xs">No bills created yet today</p>
+                  </td>
+                </tr>
+              ) : (
+                filteredSales.map((sale) => {
+                  const itemCount = sale.items ? sale.items.reduce((sum, i) => sum + (Number(i.quantity) || 0), 0) : 0;
 
-      {/* Invoice Modal */}
-      {viewingInvoice && (
-        <InvoiceModal
-          isOpen={!!viewingInvoice}
-          onClose={() => setViewingInvoice(null)}
-          sale={viewingInvoice}
-        />
-      )}
+                  return (
+                    <tr key={sale.id} className="hover:bg-slate-50/80 transition-colors">
+                      <td className="py-3 px-4">
+                        <span className="font-black text-emerald-800">{sale.invoiceNumber}</span>
+                      </td>
+
+                      <td className="py-3 px-3 text-slate-500 font-medium">
+                        {sale.time}
+                      </td>
+
+                      <td className="py-3 px-3">
+                        <div className="font-bold text-slate-900">{sale.customerName || 'Walk-in Customer'}</div>
+                        {sale.customerPhone && (
+                          <div className="text-[10px] text-slate-400 font-mono">{sale.customerPhone}</div>
+                        )}
+                      </td>
+
+                      <td className="py-3 px-3">
+                        <span className="inline-block px-2 py-0.5 bg-slate-100 text-slate-800 font-bold rounded text-[11px]">
+                          {itemCount} units ({sale.items?.length || 0} items)
+                        </span>
+                      </td>
+
+                      <td className="py-3 px-3 text-center">
+                        <span className="inline-block px-2.5 py-0.5 bg-emerald-50 text-emerald-800 font-bold rounded-full text-[11px] border border-emerald-200">
+                          {sale.paymentMethod || 'Cash'}
+                        </span>
+                      </td>
+
+                      <td className="py-3 px-3 text-right">
+                        <span className="text-sm font-black text-slate-900">
+                          {currency}{Number(sale.grandTotal).toLocaleString()}
+                        </span>
+                      </td>
+
+                      <td className="py-3 px-4 text-center">
+                        <button
+                          onClick={() => setSelectedInvoice(sale)}
+                          className="inline-flex items-center gap-1 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-bold text-xs transition-colors cursor-pointer"
+                        >
+                          <Eye className="h-3.5 w-3.5" />
+                          <span>Reprint</span>
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* INVOICE RECEIPT MODAL */}
+      <InvoiceModal
+        isOpen={!!selectedInvoice}
+        onClose={() => setSelectedInvoice(null)}
+        sale={selectedInvoice}
+      />
 
     </div>
   );

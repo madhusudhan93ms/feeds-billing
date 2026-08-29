@@ -1,93 +1,52 @@
-import React, { useState } from 'react';
-import { Printer, Download, X, Copy, Check, FileText, Smartphone } from 'lucide-react';
+import React from 'react';
+import { Printer, X, CheckCircle, Download } from 'lucide-react';
 import { Modal } from '../common/Modal';
 import { PrintableInvoice } from './PrintableInvoice';
-import { useApp } from '../../context/AppContext';
 
 export const InvoiceModal = ({ isOpen, onClose, sale }) => {
-  const [printFormat, setPrintFormat] = useState('a4');
-  const [copied, setCopied] = useState(false);
-  const { showToast } = useApp();
-
   if (!sale) return null;
 
   const handlePrint = () => {
     window.print();
   };
 
-  const handleCopySummary = () => {
-    const summary = `INVOICE ${sale.invoiceNumber}\nBranch: ${sale.branchName}\nCustomer: ${sale.customerName}\nTotal: ₹${sale.grandTotal.toLocaleString()}\nPayment: ${sale.paymentMethod} (${sale.paymentStatus})\nDate: ${sale.date}`;
-    navigator.clipboard.writeText(summary);
-    setCopied(true);
-    showToast('Invoice summary copied to clipboard', 'info');
-    setTimeout(() => setCopied(false), 2000);
-  };
-
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={`Invoice: ${sale.invoiceNumber}`} maxWidth="max-w-4xl">
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={`🧾 Invoice ${sale.invoiceNumber}`}
+      maxWidth="max-w-xl"
+    >
       <div className="space-y-4">
         
-        {/* Actions Bar (No Print) */}
-        <div className="no-print flex flex-wrap items-center justify-between gap-3 rounded-xl bg-slate-50 p-3 border border-slate-200">
-          <div className="flex items-center space-x-2">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Format:</span>
-            <button
-              onClick={() => setPrintFormat('a4')}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                printFormat === 'a4'
-                  ? 'bg-blue-600 text-white shadow-xs'
-                  : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'
-              }`}
-            >
-              <FileText className="h-3.5 w-3.5" />
-              <span>A4 Tax Invoice</span>
-            </button>
-
-            <button
-              onClick={() => setPrintFormat('thermal')}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                printFormat === 'thermal'
-                  ? 'bg-blue-600 text-white shadow-xs'
-                  : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'
-              }`}
-            >
-              <Smartphone className="h-3.5 w-3.5" />
-              <span>Thermal Receipt (80mm)</span>
-            </button>
-          </div>
-
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={handleCopySummary}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-white text-slate-700 border border-slate-200 hover:bg-slate-100 transition-colors"
-            >
-              {copied ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5 text-slate-500" />}
-              <span>{copied ? 'Copied' : 'Copy Details'}</span>
-            </button>
-
-            <button
-              onClick={handlePrint}
-              className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-bold bg-emerald-600 text-white hover:bg-emerald-700 shadow-xs transition-colors"
-            >
-              <Printer className="h-4 w-4" />
-              <span>Print Bill</span>
-            </button>
-          </div>
+        {/* Success Banner */}
+        <div className="flex items-center gap-2 p-3 bg-emerald-50 border border-emerald-200 text-emerald-900 rounded-xl text-xs font-bold no-print">
+          <CheckCircle className="h-4 w-4 text-emerald-600 shrink-0" />
+          <span>Sale completed successfully! Invoice generated and stock updated.</span>
         </div>
 
-        {/* Printable Area */}
-        <div className="print-area max-h-[60vh] overflow-y-auto rounded-xl p-2 bg-slate-100/50">
-          <PrintableInvoice sale={sale} printFormat={printFormat} />
+        {/* The Printable Invoice Template */}
+        <div className="bg-slate-100 p-2 sm:p-4 rounded-2xl">
+          <PrintableInvoice sale={sale} />
         </div>
 
-        {/* Modal Close Button (No Print) */}
-        <div className="no-print flex justify-end pt-3 border-t border-slate-100">
+        {/* Actions (Hidden during print) */}
+        <div className="flex flex-col sm:flex-row justify-end gap-2 pt-3 border-t border-slate-100 no-print">
           <button
             type="button"
             onClick={onClose}
-            className="px-5 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors"
+            className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl cursor-pointer"
           >
             Close
+          </button>
+
+          <button
+            type="button"
+            onClick={handlePrint}
+            className="px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-black text-xs sm:text-sm rounded-xl flex items-center justify-center gap-2 shadow-md cursor-pointer"
+          >
+            <Printer className="h-4 w-4" />
+            <span>Print Tax Invoice (Thermal / A4)</span>
           </button>
         </div>
 

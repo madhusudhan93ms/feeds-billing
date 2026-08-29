@@ -1,149 +1,224 @@
 import React, { useState } from 'react';
 import {
-  Bell,
-  LogOut,
-  ChevronDown,
   Shield,
+  ShoppingCart,
+  Bell,
+  Building2,
+  Settings,
+  Trash2,
   Store,
-  Clock,
   Sparkles,
-  AlertTriangle,
-  Menu,
-  Check,
-  ArrowLeftRight
+  ArrowUpRight
 } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
 import { useApp } from '../../context/AppContext';
+import { Modal } from '../common/Modal';
 
-export const TopNav = ({ onToggleSidebar, activeTabTitle }) => {
-  const { currentUser, isAdmin, allUsers, switchUser, logout, branches } = useAuth();
-  const { lowStockSummary } = useApp();
-  const [showPortalMenu, setShowPortalMenu] = useState(false);
+export const TopNav = ({ isAdminRoute, onNavigate }) => {
+  const { metrics, notifications, clearNotifications, markNotificationsAsRead, clearAll } = useApp();
+
+  const [showNotifModal, setShowNotifModal] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+
+  const unreadCount = metrics.unreadNotifCount || 0;
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 w-full items-center justify-between border-b border-slate-200/80 bg-white/95 px-4 sm:px-6 backdrop-blur-md no-print">
-      
-      {/* LEFT: Mobile Menu & Current Page Title */}
-      <div className="flex items-center space-x-3">
-        <button
-          onClick={onToggleSidebar}
-          className="rounded-xl p-2 text-slate-500 hover:bg-slate-100 lg:hidden"
-        >
-          <Menu className="h-5 w-5" />
-        </button>
-
-        <div className="flex items-center space-x-2.5">
-          <div
-            className={`flex h-8 w-8 items-center justify-center rounded-xl font-bold text-white text-xs shadow-xs ${
-              isAdmin ? 'bg-blue-600' : 'bg-emerald-600'
-            }`}
-          >
-            {isAdmin ? <Shield className="h-4 w-4" /> : <Store className="h-4 w-4" />}
+    <header className="sticky top-0 z-40 bg-slate-900 text-white border-b border-slate-800 shadow-md no-print">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 h-16 flex items-center justify-between gap-2">
+        
+        {/* BRAND LOGO & TITLE */}
+        <div className="flex items-center gap-2.5 sm:gap-3">
+          <div className="h-9 sm:h-10 w-9 sm:w-10 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center font-black text-white text-lg sm:text-xl shadow-lg shadow-emerald-500/20 shrink-0">
+            ⚡
           </div>
-
           <div>
-            <h2 className="text-sm sm:text-base font-extrabold text-slate-900 leading-tight">
-              {isAdmin ? 'Central Admin Hub' : currentUser?.branchName}
-            </h2>
-            <p className="text-[11px] font-semibold text-slate-400">
-              {isAdmin ? 'Warehouse & Multi-Branch Control' : `Logged in as: ${currentUser?.name}`}
+            <div className="flex items-center gap-2">
+              <span className="text-sm sm:text-base font-black tracking-tight text-white leading-none">
+                AGROFEEDS & SILAGE
+              </span>
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                isAdminRoute
+                  ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
+                  : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+              }`}>
+                {isAdminRoute ? 'Admin Portal' : 'Billing Counter'}
+              </span>
+            </div>
+            <p className="text-[10px] sm:text-[11px] text-slate-400 font-medium hidden sm:block">
+              {isAdminRoute
+                ? 'Store Inventory & Financial Management'
+                : 'Point of Sale & Retail Billing Terminal'}
             </p>
           </div>
         </div>
-      </div>
 
-      {/* RIGHT: Quick Switch Portal Pill, Alerts, Logout */}
-      <div className="flex items-center space-x-2 sm:space-x-3">
-        
-        {/* FAST DEMO PORTAL SWITCHER DROPDOWN */}
-        <div className="relative">
-          <button
-            onClick={() => setShowPortalMenu(!showPortalMenu)}
-            className="flex items-center space-x-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 hover:bg-slate-100 hover:border-slate-300 transition-colors shadow-xs"
-          >
-            <ArrowLeftRight className="h-3.5 w-3.5 text-blue-600" />
-            <span className="text-xs font-bold text-slate-800 hidden sm:inline">
-              Switch Portal: <span className="text-blue-700 font-black">{isAdmin ? 'Admin' : currentUser?.branchName?.split(' ')[0]}</span>
-            </span>
-            <span className="text-xs font-bold text-slate-800 sm:hidden">
-              Switch
-            </span>
-            <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
-          </button>
-
-          {/* Dropdown Menu */}
-          {showPortalMenu && (
-            <div className="absolute right-0 mt-2 w-72 rounded-2xl border border-slate-200 bg-white p-3 shadow-2xl z-50 animate-in zoom-in-95">
-              <div className="px-2 py-1.5 border-b border-slate-100 mb-2">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                  Select Demo Portal:
-                </p>
-              </div>
-
-              <div className="space-y-1">
-                {allUsers.map((user) => {
-                  const isCurrent = user.id === currentUser?.id;
-                  const isUserAdmin = user.role === 'admin';
-
-                  return (
-                    <button
-                      key={user.id}
-                      onClick={() => {
-                        switchUser(user);
-                        setShowPortalMenu(false);
-                      }}
-                      className={`w-full flex items-center justify-between p-2 rounded-xl text-left text-xs transition-colors ${
-                        isCurrent
-                          ? 'bg-blue-50/90 border border-blue-200 text-blue-950 font-bold'
-                          : 'hover:bg-slate-50 text-slate-700'
-                      }`}
-                    >
-                      <div className="flex items-center space-x-2.5">
-                        <div
-                          className={`h-7 w-7 rounded-lg flex items-center justify-center text-white text-[10px] font-bold ${
-                            isUserAdmin ? 'bg-blue-600' : 'bg-emerald-600'
-                          }`}
-                        >
-                          {isUserAdmin ? 'AD' : user.name.slice(0, 2).toUpperCase()}
-                        </div>
-                        <div>
-                          <p className="font-bold">{user.role === 'admin' ? 'Central Admin Portal' : user.branchName}</p>
-                          <p className="text-[10px] text-slate-400">{user.name}</p>
-                        </div>
-                      </div>
-
-                      {isCurrent && <Check className="h-4 w-4 text-blue-600" />}
-                    </button>
-                  );
-                })}
-              </div>
-
-              <div className="border-t border-slate-100 mt-2 pt-2">
-                <button
-                  onClick={() => {
-                    logout();
-                    setShowPortalMenu(false);
-                  }}
-                  className="w-full flex items-center space-x-2 p-2 rounded-xl text-left text-xs text-rose-600 hover:bg-rose-50 font-bold transition-colors"
-                >
-                  <LogOut className="h-4 w-4" />
-                  <span>Log Out (Choose Portal)</span>
-                </button>
-              </div>
+        {/* RIGHT CONTROLS: ONLY ADMIN HAS OPEN POS LINK */}
+        <div className="flex items-center gap-2 sm:gap-3">
+          
+          {/* Admin has button to test/open Billing Counter */}
+          {isAdminRoute ? (
+            <button
+              type="button"
+              onClick={() => onNavigate('/')}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs sm:text-sm font-black shadow-md transition-all cursor-pointer"
+            >
+              <ShoppingCart className="h-4 w-4" />
+              <span>Open Billing Counter</span>
+              <ArrowUpRight className="h-3.5 w-3.5" />
+            </button>
+          ) : (
+            /* Staff Counter sees a clean status badge */
+            <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-400 bg-emerald-950/60 px-3 py-1.5 rounded-xl border border-emerald-800/60">
+              <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="hidden sm:inline">Billing Terminal Active</span>
             </div>
           )}
+
+          {/* Real-time Alerts Bell (Admin view) */}
+          {isAdminRoute && (
+            <button
+              type="button"
+              onClick={() => {
+                markNotificationsAsRead();
+                setShowNotifModal(true);
+              }}
+              className="relative p-2 text-slate-300 hover:text-white hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
+              title="Real-Time Alerts"
+            >
+              <Bell className="h-4 sm:h-5 w-4 sm:w-5" />
+              {unreadCount > 0 && (
+                <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[10px] font-black text-white animate-pulse">
+                  {unreadCount}
+                </span>
+              )}
+            </button>
+          )}
+
+          {/* Settings / Reset */}
+          <button
+            type="button"
+            onClick={() => setShowSettingsModal(true)}
+            className="p-2 text-slate-300 hover:text-white hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
+            title="System Settings"
+          >
+            <Settings className="h-4 sm:h-5 w-4 sm:w-5" />
+          </button>
+
         </div>
 
-        {/* Direct Log Out Button */}
-        <button
-          onClick={logout}
-          title="Log Out"
-          className="p-2 rounded-xl text-slate-400 hover:bg-slate-100 hover:text-rose-600 transition-colors"
-        >
-          <LogOut className="h-4 w-4" />
-        </button>
-
       </div>
+
+      {/* NOTIFICATIONS MODAL */}
+      {showNotifModal && (
+        <Modal
+          isOpen={true}
+          onClose={() => setShowNotifModal(false)}
+          title="🔔 Live Billing & Stock Alerts"
+          maxWidth="max-w-lg"
+        >
+          <div className="space-y-3">
+            <div className="flex justify-between items-center pb-2 border-b border-slate-100">
+              <span className="text-xs text-slate-500 font-bold">
+                {notifications.length} Activity Events Logged
+              </span>
+              {notifications.length > 0 && (
+                <button
+                  type="button"
+                  onClick={clearNotifications}
+                  className="text-xs text-rose-600 hover:underline font-bold cursor-pointer"
+                >
+                  Clear All
+                </button>
+              )}
+            </div>
+
+            <div className="max-h-[350px] overflow-y-auto space-y-2 divide-y divide-slate-100 pr-1">
+              {notifications.length === 0 ? (
+                <p className="text-center py-8 text-xs text-slate-400 font-bold">
+                  No activity recorded yet.
+                </p>
+              ) : (
+                notifications.map((n) => (
+                  <div key={n.id} className="pt-2 first:pt-0 flex items-start gap-3">
+                    <div className={`h-8 w-8 rounded-xl shrink-0 flex items-center justify-center text-sm font-bold ${
+                      n.type === 'low_stock'
+                        ? 'bg-amber-100 text-amber-900'
+                        : n.type === 'restock'
+                        ? 'bg-blue-100 text-blue-900'
+                        : 'bg-emerald-100 text-emerald-900'
+                    }`}>
+                      {n.type === 'low_stock' ? '⚠️' : n.type === 'restock' ? '📦' : '💰'}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex justify-between items-start">
+                        <p className="text-xs font-black text-slate-900 truncate">{n.title}</p>
+                        <span className="text-[10px] text-slate-400 font-medium shrink-0 ml-2">{n.time}</span>
+                      </div>
+                      <p className="text-xs text-slate-600 mt-0.5 leading-relaxed">{n.message}</p>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div className="pt-3 border-t border-slate-100 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setShowNotifModal(false)}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* SETTINGS MODAL */}
+      {showSettingsModal && (
+        <Modal
+          isOpen={true}
+          onClose={() => setShowSettingsModal(false)}
+          title="⚙️ Store System Settings"
+          maxWidth="max-w-md"
+        >
+          <div className="space-y-4">
+            <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 text-xs text-slate-600 space-y-1">
+              <p className="font-black text-slate-800 text-sm">AGROFEEDS Retail POS Engine</p>
+              <p>Database: <strong>Local Sync Store</strong></p>
+              <p>System Status: <strong>🟢 Online & Ready</strong></p>
+            </div>
+
+            <div className="pt-3 border-t border-slate-100">
+              <p className="text-xs font-bold text-slate-500 mb-2">
+                Demonstration Data Options:
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  if (window.confirm('Clear all products and sales to start fresh?')) {
+                    clearAll();
+                    setShowSettingsModal(false);
+                  }
+                }}
+                className="w-full py-2.5 px-4 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 rounded-xl text-xs font-black flex items-center justify-center gap-2 cursor-pointer transition-colors"
+              >
+                <Trash2 className="h-4 w-4" />
+                <span>Clear All Test Data (Start Fresh)</span>
+              </button>
+            </div>
+
+            <div className="pt-2 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setShowSettingsModal(false)}
+                className="px-4 py-2 bg-slate-100 text-slate-700 text-xs font-bold rounded-xl cursor-pointer"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
 
     </header>
   );

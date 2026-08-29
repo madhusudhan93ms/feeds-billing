@@ -1,19 +1,17 @@
 @import "tailwindcss";
 
 @layer base {
-  :root {
-    --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-  }
-
   body {
-    font-family: var(--font-sans);
+    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
     background-color: #f8fafc;
     color: #0f172a;
-    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
   }
 }
 
-/* Custom scrollbars */
+/* Custom Scrollbars */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -21,56 +19,37 @@
 
 ::-webkit-scrollbar-track {
   background: #f1f5f9;
+  border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb {
   background: #cbd5e1;
-  border-radius: 9999px;
+  border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
 }
 
-/* Professional Print Stylesheet for A4 & 80mm Thermal Receipts */
+/* Print Styles for Receipts and Invoices */
 @media print {
-  html, body {
-    background: white !important;
-    color: black !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    height: auto !important;
-    overflow: visible !important;
-  }
-
   body * {
     visibility: hidden;
   }
-  
-  .print-area, .print-area * {
+  .printable-receipt, .printable-receipt * {
     visibility: visible;
   }
-  
-  .print-area {
-    position: fixed;
+  .printable-receipt {
+    position: absolute;
     left: 0;
     top: 0;
     width: 100%;
-    margin: 0 !important;
-    padding: 0 !important;
-    background: white !important;
-    box-shadow: none !important;
-    border: none !important;
-    max-height: none !important;
-    overflow: visible !important;
+    margin: 0;
+    padding: 10px;
+    background: white;
+    color: black;
   }
-
   .no-print {
     display: none !important;
-  }
-
-  @page {
-    margin: 6mm;
-    size: auto;
   }
 }

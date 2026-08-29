@@ -1,248 +1,201 @@
 import React, { useState, useMemo } from 'react';
 import {
   TrendingUp,
+  ReceiptText,
   Search,
-  Filter,
-  Receipt,
-  FileText,
   Calendar,
-  Building2,
-  Printer,
-  CreditCard,
-  Banknote,
-  QrCode,
-  User
+  Eye,
+  ShoppingBag,
+  Filter,
+  CheckCircle2
 } from 'lucide-react';
-import { storageService } from '../../services/storageService';
 import { useApp } from '../../context/AppContext';
-import { DataTable } from '../../components/common/DataTable';
 import { InvoiceModal } from '../../components/billing/InvoiceModal';
 
 export const AdminSalesPage = () => {
-  const { refreshKey } = useApp();
+  const { sales, settings, metrics } = useApp();
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedBranchFilter, setSelectedBranchFilter] = useState('All');
-  const [selectedPaymentFilter, setSelectedPaymentFilter] = useState('All');
-  const [viewingInvoice, setViewingInvoice] = useState(null);
+  const [dateFilter, setDateFilter] = useState('all'); // 'all' | 'today'
+  const [selectedInvoice, setSelectedInvoice] = useState(null);
 
-  const branches = useMemo(() => {
-    return storageService.getBranches();
-  }, [refreshKey]);
-
-  const sales = useMemo(() => {
-    return storageService.getSales();
-  }, [refreshKey]);
+  const currency = settings.currency || '₹';
+  const todayStr = new Date().toISOString().split('T')[0];
 
   const filteredSales = useMemo(() => {
-    return sales.filter(s => {
-      const matchBranch = selectedBranchFilter === 'All' || s.branchId === selectedBranchFilter;
-      const matchPayment = selectedPaymentFilter === 'All' || s.paymentMethod === selectedPaymentFilter;
-      const matchSearch =
-        searchQuery === '' ||
-        s.invoiceNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        s.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        s.branchName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        s.items.some(i => i.name.toLowerCase().includes(searchQuery.toLowerCase()) || i.sku.toLowerCase().includes(searchQuery.toLowerCase()));
-      return matchBranch && matchPayment && matchSearch;
-    });
-  }, [sales, selectedBranchFilter, selectedPaymentFilter, searchQuery]);
+    return sales.filter((sale) => {
+      const matchesSearch =
+        (sale.invoiceNumber && sale.invoiceNumber.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (sale.customerName && sale.customerName.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (sale.cashierName && sale.cashierName.toLowerCase().includes(searchQuery.toLowerCase()));
 
-  const totalRevenue = useMemo(() => {
-    return filteredSales.reduce((sum, s) => sum + s.grandTotal, 0);
-  }, [filteredSales]);
+      const matchesDate = dateFilter === 'all' || sale.date === todayStr;
+
+      return matchesSearch && matchesDate;
+    });
+  }, [sales, searchQuery, dateFilter, todayStr]);
+
+  const totalFilteredAmount = filteredSales.reduce((sum, s) => sum + (Number(s.grandTotal) || 0), 0);
+  const totalFilteredUnits = filteredSales.reduce((sum, s) => {
+    return sum + (s.items ? s.items.reduce((iSum, i) => iSum + (Number(i.quantity) || 0), 0) : 0);
+  }, 0);
 
   return (
     <div className="space-y-6">
       
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      {/* HEADER */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 flex items-center gap-2.5">
-            <TrendingUp className="h-6 w-6 text-blue-600" />
-            <span>Sales & Revenue Ledger</span>
+          <h1 className="text-xl sm:text-2xl font-black text-slate-900">
+            Sales & Invoices History
           </h1>
-          <p className="text-xs sm:text-sm text-slate-500">
-            Real-time transaction log across all 5 retail shop locations.
+          <p className="text-xs sm:text-sm text-slate-500 mt-1">
+            Complete record of all bills generated across shifts with printable receipt lookups.
           </p>
         </div>
 
-        <div className="rounded-2xl bg-white p-3 border border-slate-200 shadow-xs flex items-center space-x-3 text-xs">
-          <div>
-            <span className="text-slate-400 block text-[10px] uppercase font-bold">Filtered Revenue</span>
-            <strong className="text-base font-black text-emerald-800">₹{totalRevenue.toLocaleString()}</strong>
-          </div>
-          <div className="border-l border-slate-200 pl-3">
-            <span className="text-slate-400 block text-[10px] uppercase font-bold">Total Invoices</span>
-            <strong className="text-base font-black text-slate-800">{filteredSales.length}</strong>
+        <div className="flex items-center gap-3">
+          <div className="bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-2 text-right">
+            <p className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-700">Total Billed</p>
+            <p className="text-base font-black text-emerald-900">{currency}{totalFilteredAmount.toLocaleString()}</p>
           </div>
         </div>
       </div>
 
-      {/* Filter Bar */}
-      <div className="rounded-2xl bg-white p-4 border border-slate-200 shadow-xs space-y-3">
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+      {/* FILTER & SEARCH */}
+      <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs">
+        <div className="flex flex-col sm:flex-row gap-3">
           
-          {/* Branch Filter Pills */}
-          <div className="flex items-center space-x-2 overflow-x-auto pb-1 lg:pb-0">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search by invoice number, customer name, or cashier..."
+              className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl">
             <button
-              onClick={() => setSelectedBranchFilter('All')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-colors ${
-                selectedBranchFilter === 'All'
-                  ? 'bg-slate-900 text-white'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              onClick={() => setDateFilter('all')}
+              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                dateFilter === 'all'
+                  ? 'bg-white text-blue-700 shadow-2xs'
+                  : 'text-slate-500 hover:text-slate-900'
               }`}
             >
-              All Branches
+              All Invoices ({sales.length})
             </button>
-
-            {branches.map((b) => (
-              <button
-                key={b.id}
-                onClick={() => setSelectedBranchFilter(b.id)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-colors ${
-                  selectedBranchFilter === b.id
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                }`}
-              >
-                {b.name}
-              </button>
-            ))}
-          </div>
-
-          {/* Payment Method & Search */}
-          <div className="flex items-center space-x-2">
-            <select
-              value={selectedPaymentFilter}
-              onChange={(e) => setSelectedPaymentFilter(e.target.value)}
-              className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700"
+            <button
+              onClick={() => setDateFilter('today')}
+              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                dateFilter === 'today'
+                  ? 'bg-white text-emerald-700 shadow-2xs'
+                  : 'text-slate-500 hover:text-slate-900'
+              }`}
             >
-              <option value="All">All Payments</option>
-              <option value="Cash">Cash</option>
-              <option value="UPI">UPI / GPay</option>
-              <option value="Card">Card</option>
-              <option value="Credit">Credit</option>
-            </select>
-
-            <div className="relative w-64">
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search invoice #, customer..."
-                className="w-full rounded-xl border border-slate-200 bg-slate-50/70 py-2 pl-9 pr-3 text-xs focus:outline-none focus:border-blue-500"
-              />
-            </div>
+              Sold Today ({metrics.todayBillsCount || 0})
+            </button>
           </div>
 
         </div>
       </div>
 
-      {/* Sales DataTable */}
-      <DataTable
-        columns={[
-          {
-            key: 'invoiceNumber',
-            header: 'Invoice #',
-            sortable: true,
-            render: (val, row) => (
-              <div>
-                <span className="font-mono text-xs font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
-                  {val}
-                </span>
-                <div className="text-[11px] text-slate-400 mt-1">{row.date} at {row.time}</div>
-              </div>
-            )
-          },
-          {
-            key: 'branchName',
-            header: 'Branch Shop',
-            sortable: true,
-            render: (val) => (
-              <span className="font-bold text-xs text-slate-800 flex items-center gap-1.5">
-                <Building2 className="h-3.5 w-3.5 text-blue-600" />
-                <span>{val}</span>
-              </span>
-            )
-          },
-          {
-            key: 'customerName',
-            header: 'Customer',
-            sortable: true,
-            render: (val, row) => (
-              <div>
-                <div className="font-semibold text-slate-900">{val}</div>
-                {row.customerPhone && <div className="text-xs text-slate-400">{row.customerPhone}</div>}
-              </div>
-            )
-          },
-          {
-            key: 'items',
-            header: 'Items Breakdown',
-            render: (items) => (
-              <div className="text-xs text-slate-600 max-w-xs space-y-0.5">
-                {items.slice(0, 2).map((it, idx) => (
-                  <div key={idx} className="line-clamp-1">
-                    • {it.quantity}x {it.name}
-                  </div>
-                ))}
-                {items.length > 2 && (
-                  <span className="text-[10px] font-bold text-slate-400">+{items.length - 2} more item(s)</span>
-                )}
-              </div>
-            )
-          },
-          {
-            key: 'grandTotal',
-            header: 'Bill Amount',
-            sortable: true,
-            render: (val) => <strong className="text-sm font-black text-emerald-800">₹{val.toLocaleString()}</strong>
-          },
-          {
-            key: 'paymentMethod',
-            header: 'Payment',
-            sortable: true,
-            render: (val) => (
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-700">
-                {val}
-              </span>
-            )
-          },
-          {
-            key: 'createdBy',
-            header: 'Billed By',
-            render: (val) => <span className="text-xs text-slate-500">{val}</span>
-          },
-          {
-            key: 'actions',
-            header: 'Actions',
-            className: 'text-right',
-            render: (_, row) => (
-              <button
-                onClick={() => setViewingInvoice(row)}
-                className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-bold text-blue-600 hover:bg-blue-50 transition-colors"
-              >
-                <FileText className="h-3.5 w-3.5" />
-                <span>Invoice</span>
-              </button>
-            )
-          }
-        ]}
-        data={filteredSales}
-        pageSize={10}
-        emptyMessage="No sales transactions found"
-        emptySubMessage="Sales made across branches or at Main HQ Shop will appear here."
-      />
+      {/* INVOICES TABLE */}
+      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-2xs overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs">
+            <thead>
+              <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 font-extrabold uppercase text-[10px] tracking-wider">
+                <th className="py-3 px-4">Invoice #</th>
+                <th className="py-3 px-3">Date & Time</th>
+                <th className="py-3 px-3">Cashier</th>
+                <th className="py-3 px-3">Customer Details</th>
+                <th className="py-3 px-3">Items Summary</th>
+                <th className="py-3 px-3 text-center">Payment</th>
+                <th className="py-3 px-3 text-right">Grand Total</th>
+                <th className="py-3 px-4 text-center">Action</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {filteredSales.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className="py-12 text-center text-slate-400">
+                    <ShoppingBag className="h-8 w-8 mx-auto mb-2 text-slate-300" />
+                    <p className="font-semibold text-xs">No sales invoices found matching filters</p>
+                  </td>
+                </tr>
+              ) : (
+                filteredSales.map((sale) => {
+                  const itemCount = sale.items ? sale.items.reduce((sum, i) => sum + (Number(i.quantity) || 0), 0) : 0;
 
-      {/* Invoice View Modal */}
-      {viewingInvoice && (
-        <InvoiceModal
-          isOpen={!!viewingInvoice}
-          onClose={() => setViewingInvoice(null)}
-          sale={viewingInvoice}
-        />
-      )}
+                  return (
+                    <tr key={sale.id} className="hover:bg-slate-50/80 transition-colors">
+                      
+                      <td className="py-3 px-4">
+                        <span className="font-black text-blue-700">{sale.invoiceNumber}</span>
+                      </td>
+
+                      <td className="py-3 px-3">
+                        <div className="font-bold text-slate-900">{sale.date}</div>
+                        <div className="text-[11px] text-slate-400">{sale.time}</div>
+                      </td>
+
+                      <td className="py-3 px-3">
+                        <span className="font-semibold text-slate-700">{sale.cashierName || 'Cashier'}</span>
+                      </td>
+
+                      <td className="py-3 px-3">
+                        <div className="font-bold text-slate-900">{sale.customerName || 'Walk-in Customer'}</div>
+                        {sale.customerPhone && (
+                          <div className="text-[10px] text-slate-400 font-mono">{sale.customerPhone}</div>
+                        )}
+                      </td>
+
+                      <td className="py-3 px-3">
+                        <span className="inline-block px-2 py-0.5 bg-slate-100 text-slate-800 font-bold rounded text-[11px]">
+                          {itemCount} units ({sale.items?.length || 0} products)
+                        </span>
+                      </td>
+
+                      <td className="py-3 px-3 text-center">
+                        <span className="inline-block px-2.5 py-0.5 bg-emerald-50 text-emerald-800 font-bold rounded-full text-[11px] border border-emerald-200">
+                          {sale.paymentMethod || 'Cash'}
+                        </span>
+                      </td>
+
+                      <td className="py-3 px-3 text-right">
+                        <span className="text-sm font-black text-slate-900">
+                          {currency}{Number(sale.grandTotal).toLocaleString()}
+                        </span>
+                      </td>
+
+                      <td className="py-3 px-4 text-center">
+                        <button
+                          onClick={() => setSelectedInvoice(sale)}
+                          className="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg font-bold text-xs transition-colors cursor-pointer"
+                        >
+                          <Eye className="h-3.5 w-3.5" />
+                          <span>View Bill</span>
+                        </button>
+                      </td>
+
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* INVOICE RECEIPT MODAL */}
+      <InvoiceModal
+        isOpen={!!selectedInvoice}
+        onClose={() => setSelectedInvoice(null)}
+        sale={selectedInvoice}
+      />
 
     </div>
   );

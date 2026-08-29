@@ -1,84 +1,52 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { storageService } from '../services/storageService';
 
 const AuthContext = createContext(null);
 
+const STORAGE_KEY_USER = 'retail_pos_logged_user';
+
 export const AuthProvider = ({ children }) => {
-  const [currentUser, setCurrentUser] = useState(() => storageService.getCurrentSession());
-  const [allUsers, setAllUsers] = useState(() => storageService.getUsers());
-  const [branches, setBranches] = useState(() => storageService.getBranches());
+  // Current user role: 'admin' | 'staff' | null (if needs login)
+  const [currentUser, setCurrentUser] = useState(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_USER);
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    // Default logged in user for demo convenience
+    return {
+      role: window.location.pathname.includes('/admin') ? 'admin' : 'staff',
+      name: window.location.pathname.includes('/admin') ? 'Store Admin' : 'Billing Staff'
+    };
+  });
 
-  useEffect(() => {
-    // If no user in session, set default admin
-    if (!currentUser) {
-      const users = storageService.getUsers();
-      if (users.length > 0) {
-        storageService.setCurrentSession(users[0]);
-        setCurrentUser(users[0]);
-      }
-    }
-  }, []);
-
-  const refreshUserData = () => {
-    setAllUsers(storageService.getUsers());
-    setBranches(storageService.getBranches());
-    const session = storageService.getCurrentSession();
-    if (session) {
-      const freshUser = storageService.getUserById(session.id);
-      if (freshUser) {
-        setCurrentUser(freshUser);
-        storageService.setCurrentSession(freshUser);
-      }
-    }
-  };
-
-  const login = (username, password) => {
-    const user = storageService.authenticate(username, password);
+  const loginAsAdmin = () => {
+    const user = { role: 'admin', name: 'Store Admin', email: 'admin@agrofeeds.com' };
+    localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(user));
     setCurrentUser(user);
-    refreshUserData();
-    return user;
   };
 
-  const switchUser = (userOrId) => {
-    let targetUser = null;
-    if (typeof userOrId === 'string') {
-      targetUser = storageService.getUserById(userOrId);
-    } else {
-      targetUser = userOrId;
-    }
-
-    if (targetUser) {
-      storageService.setCurrentSession(targetUser);
-      setCurrentUser(targetUser);
-      storageService.logActivity(
-        'Switched User',
-        targetUser.branchName || 'Central',
-        `USER-${targetUser.id}`,
-        `Fast-switched active session to ${targetUser.name} (${targetUser.role === 'admin' ? 'Admin' : targetUser.branchName})`
-      );
-    }
+  const loginAsStaff = () => {
+    const user = { role: 'staff', name: 'Billing Staff', email: 'staff@agrofeeds.com' };
+    localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(user));
+    setCurrentUser(user);
   };
 
   const logout = () => {
-    storageService.clearSession();
+    localStorage.removeItem(STORAGE_KEY_USER);
     setCurrentUser(null);
   };
 
   const isAdmin = currentUser?.role === 'admin';
-  const assignedBranch = currentUser?.branchId ? storageService.getBranchById(currentUser.branchId) : null;
+  const isStaff = currentUser?.role === 'staff';
 
   return (
     <AuthContext.Provider
       value={{
         currentUser,
         isAdmin,
-        assignedBranch,
-        allUsers,
-        branches,
-        login,
-        logout,
-        switchUser,
-        refreshUserData
+        isStaff,
+        loginAsAdmin,
+        loginAsStaff,
+        logout
       }}
     >
       {children}
